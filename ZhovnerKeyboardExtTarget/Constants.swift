@@ -13,6 +13,14 @@ enum Constants {
     static let keyNormalColour: UIColor = .white
     static let keyPressedColour: UIColor = .lightText
     static let specialKeyNormalColour: UIColor = .gray
+    
+    static let key123Width: CGFloat = 45
+    static let keyGlobeWidth: CGFloat = 40
+    static let keyShiftWidth: CGFloat = 45
+    static let keyBackspaceWidth: CGFloat = 45
+    static let keyReturnWidth: CGFloat = 60
+    static let keyLeftSpecialSymbolWidth: CGFloat = 28
+    static let keyRightSpecialSymbolWidth: CGFloat = 28
 
     static let letterKeys = [
         ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"],

@@ -10,23 +10,18 @@ import UIKit
 private var proxy : UITextDocumentProxy!
 
 final class KeyboardViewController: UIInputViewController {
-    
-    //@IBOutlet var nextKeyboardButton: UIButton!
+
+    private var shiftButton = UIButton()
     
     private var keys: [UIButton] = []
     private var paddingViews: [UIButton] = []
     private var backspaceTimer: Timer?
     
     private var keyboardState: KeyboardState = .letters
-    private var shiftButtonState: ShiftButtonState = .normal
+    private var shiftButtonState: ShiftButtonState = .shift
     
     private var mainStackView: UIStackView!
     private var keyRows: [UIStackView] = []
-    
-//    private var stackView1: UIStackView = StackViewBuilder.BuildStackView()
-//    private var stackView2: UIStackView = StackViewBuilder.BuildStackView()
-//    private var stackView3: UIStackView = StackViewBuilder.BuildStackView()
-//    private var stackView4: UIStackView = StackViewBuilder.BuildStackView()
     
     override func updateViewConstraints() {
         super.updateViewConstraints()
@@ -35,7 +30,6 @@ final class KeyboardViewController: UIInputViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         proxy = textDocumentProxy as UITextDocumentProxy
-        loadInterface()
         setupKeyboard()
     }
     
@@ -61,27 +55,9 @@ final class KeyboardViewController: UIInputViewController {
         view.addConstraint(heightConstraint)
     }
     
-    func loadInterface(){
-//        let stackViews: [UIStackView] = [stackView1, stackView2, stackView3, stackView4]
-//        stackViews.forEach {
-//            view.addSubview($0)
-//            NSLayoutConstraint.activate([
-//                $0.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 2),
-//                $0.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -2)
-//            ])
-//        }
-//        NSLayoutConstraint.activate([
-//            stackView2.topAnchor.constraint(equalTo: stackView1.bottomAnchor, constant: 10),
-//            stackView3.topAnchor.constraint(equalTo: stackView2.bottomAnchor, constant: 10),
-//            stackView4.topAnchor.constraint(equalTo: stackView3.bottomAnchor, constant: 10)
-//        ])
-//        loadKeys()
-    }
-    
     private func setupKeyboard() {
             createMainStackView()
             createKeyboardRows()
-//            setupAppearance()
         }
     
     private func createMainStackView() {
@@ -103,12 +79,11 @@ final class KeyboardViewController: UIInputViewController {
     }
     
     private func createKeyboardRows() {
-        // Раскладка QWERTY как в iOS
         let keyboardLayout = [
             ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"],
             ["a", "s", "d", "f", "g", "h", "j", "k", "l"],
             ["shift", "z", "x", "c", "v", "b", "n", "m", "backspace"],
-            ["123", "globe", "space", "return"]
+            ["123", "globe", "specialSymbolLeft","space", "specialSymbolRight", "return"]
         ]
         
         for (index, rowKeys) in keyboardLayout.enumerated() {
@@ -133,11 +108,30 @@ final class KeyboardViewController: UIInputViewController {
         return rowStack
     }
 
-    private func createPunctuationMenuItems() -> [UIAction] {
+    private func createLeftPunctuationMenuItems() -> [UIAction] {
         let punctuationPairs = [
             (".", ".", "circle.fill"),
             (";", ";", "semicolon"),
             (":", ":", "coloncurrencysign.circle.fill"),
+            
+        ]
+        
+        return punctuationPairs.map { (symbol, title, systemImage) in
+            UIAction(
+                title: title,
+                image: UIImage(systemName: systemImage),
+                handler: { [weak self] _ in
+                    self?.insertText(symbol)
+                }
+            )
+        }
+    }
+    
+    private func createRightPunctuationMenuItems() -> [UIAction] {
+        let punctuationPairs = [
+            ("(", "(", "parenleft"),
+            (")", ")", "parenright"),
+            ("!", "!", "exclamationmark.circle.fill"),
             
         ]
         
@@ -187,16 +181,6 @@ final class KeyboardViewController: UIInputViewController {
                 button.addTarget(self, action: #selector(keyTouchDown), for: .touchDown)
                 button.addTarget(self, action: #selector(keyUntouched), for: .touchDragExit)
                 button.addTarget(self, action: #selector(keyMultiPress(_:event:)), for: .touchDownRepeat)
-                
-                if key == "q" {
-                    button.configure(
-                        primaryTitle: ".",
-                        primaryAction: { [weak self] in
-                            self?.insertText(".")
-                        },
-                        menuItems: createPunctuationMenuItems()
-                    )
-                }
 
                 if key == "⌫"{
                     let longPressRecognizer = UILongPressGestureRecognizer(target: self, action: #selector(keyLongPressed(_:)))
@@ -204,18 +188,6 @@ final class KeyboardViewController: UIInputViewController {
                 }
                 
                 keys.append(button)
-//                switch row {
-//                case 0:
-//                    stackView1.addArrangedSubview(button)
-//                case 1:
-//                    stackView2.addArrangedSubview(button)
-//                case 2:
-//                    stackView3.addArrangedSubview(button)
-//                case 3:
-//                    stackView4.addArrangedSubview(button)
-//                default:
-//                    break
-//                }
                 
                 //top row is longest row so it should decide button width
 //                print("button width: ", buttonWidth)
@@ -260,7 +232,7 @@ extension KeyboardViewController {
         keyboardState = .symbols
         loadKeys()
     }
-    func handlDeleteButtonPressed(){
+    @objc func handlDeleteButtonPressed(){
         proxy.deleteBackward()
     }
     
@@ -337,58 +309,38 @@ extension KeyboardViewController {
         }
 }
 
-
-extension KeyboardViewController {
-    override func textWillChange(_ textInput: UITextInput?) {
-        // The app is about to change the document's contents. Perform any preparation here.
-    }
-    
-    override func textDidChange(_ textInput: UITextInput?) {
-        // The app has just changed the document's contents, the document context has been updated.
-        
-        var textColor: UIColor
-        let proxy = self.textDocumentProxy
-        if proxy.keyboardAppearance == UIKeyboardAppearance.dark {
-            textColor = UIColor.white
-        } else {
-            textColor = UIColor.black
-        }
-        //self.nextKeyboardButton.setTitleColor(textColor, for: [])
-    }
-}
-
 // MARK: - Создание кнопок
 extension KeyboardViewController {
     private func createKeyButton(for key: String, rowIndex: Int) -> UIButton {
-        let button = UIButton(type: .system)
+        let button = PopUpButton()
         button.translatesAutoresizingMaskIntoConstraints = false
         
         // Базовая настройка
-        button.backgroundColor = .keyboardButtonBackground
-        button.setTitleColor(.label, for: .normal)
-        button.titleLabel?.font = UIFont.systemFont(ofSize: 16, weight: .regular)
+        button.titleLabel?.font = UIFont.systemFont(ofSize: 18, weight: .regular)
         button.layer.cornerRadius = 5
-        button.layer.masksToBounds = true
-        
-        // Обработка нажатия
-        button.addTarget(self, action: #selector(keyPressed(_:)), for: .touchUpInside)
         
         // Настройка в зависимости от типа кнопки
         switch key {
         case "shift":
+            shiftButton = button
             configureShiftButton(button)
+            updateShiftButtonAppearance(button, shiftState: shiftButtonState)
         case "backspace":
             configureBackspaceButton(button)
         case "123":
             configureNumberSwitchButton(button)
         case "globe":
             configureGlobeButton(button)
+        case "specialSymbolLeft":
+            configureLeftSpecialSymbolButton(button)
+        case "specialSymbolRight":
+            configureRightSpecialSymbolButton(button)
         case "space":
             configureSpaceButton(button, rowIndex: rowIndex)
         case "return":
             configureReturnButton(button)
         default:
-            configureLetterButton(button, key: key)
+            configureLetterButton(button, key: key.uppercased())
         }
         
         // Constraints для единообразия
@@ -400,22 +352,29 @@ extension KeyboardViewController {
     }
     
     private func configureLetterButton(_ button: UIButton, key: String) {
+        button.backgroundColor = .commonButtonColor
+        button.setTitleColor(.titleButtonColor, for: .normal)
         button.setTitle(key.uppercased(), for: .normal)
-        button.widthAnchor.constraint(equalToConstant: 35).isActive = true
-        //button.addTouchAnimations()
+        button.widthAnchor.constraint(equalToConstant: 32).isActive = true
+        // Обработка нажатия
+        button.addTarget(self, action: #selector(keyPressed(_:)), for: .touchUpInside)
     }
     
     private func configureShiftButton(_ button: UIButton) {
         button.setImage(UIImage(systemName: "shift"), for: .normal)
-        button.tintColor = .label
-        button.widthAnchor.constraint(equalToConstant: 45).isActive = true
+        button.backgroundColor = .shiftButtonColor
+        button.tintColor = .shiftButtonTintColor
+        button.widthAnchor.constraint(equalToConstant: Constants.keyShiftWidth).isActive = true
         button.addTarget(self, action: #selector(shiftPressed), for: .touchUpInside)
     }
     
     private func configureBackspaceButton(_ button: UIButton) {
         button.setImage(UIImage(systemName: "delete.left"), for: .normal)
-        button.tintColor = .label
-        button.widthAnchor.constraint(equalToConstant: 45).isActive = true
+        button.tintColor = .titleButtonColor
+        button.widthAnchor.constraint(equalToConstant: Constants.keyBackspaceWidth).isActive = true
+        button.backgroundColor = .specialButtonColor
+        
+        button.addTarget(self, action: #selector (handlDeleteButtonPressed), for: .touchUpInside)
         
         // Долгое нажатие для непрерывного удаления
         let longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleBackspaceLongPress))
@@ -425,45 +384,89 @@ extension KeyboardViewController {
     private func configureNumberSwitchButton(_ button: UIButton) {
         button.setTitle("123", for: .normal)
         button.titleLabel?.font = UIFont.systemFont(ofSize: 14, weight: .medium)
-        button.widthAnchor.constraint(equalToConstant: 50).isActive = true
+        button.widthAnchor.constraint(equalToConstant: Constants.key123Width).isActive = true
+        button.setTitleColor(.titleButtonColor, for: .normal)
+        button.backgroundColor = .specialButtonColor
         button.addTarget(self, action: #selector(switchToNumbers), for: .touchUpInside)
     }
     
     private func configureGlobeButton(_ button: UIButton) {
         button.setImage(UIImage(systemName: "globe"), for: .normal)
-        button.tintColor = .label
-        button.widthAnchor.constraint(equalToConstant: 45).isActive = true
+        button.tintColor = .titleButtonColor
+        button.backgroundColor = .specialButtonColor
+        button.widthAnchor.constraint(equalToConstant: Constants.keyGlobeWidth).isActive = true
         button.addTarget(self, action: #selector(handleGlobeButton), for: .touchUpInside)
     }
     
+    private func configureLeftSpecialSymbolButton(_ button: PopUpButton) {
+        button.setTitle(",", for: .normal)
+        button.titleLabel?.font = UIFont.systemFont(ofSize: 14, weight: .medium)
+        button.widthAnchor.constraint(equalToConstant: Constants.keyLeftSpecialSymbolWidth).isActive = true
+        button.setTitleColor(.titleButtonColor, for: .normal)
+        button.backgroundColor = .commonButtonColor
+        button.configure(
+            primaryTitle: ",",
+            primaryAction: { [weak self] in
+                self?.insertText(",")
+            },
+            menuItems: createLeftPunctuationMenuItems()
+        )
+//        button.addTarget(self, action: #selector(switchToNumbers), for: .touchUpInside)
+    }
+    
+    private func configureRightSpecialSymbolButton(_ button: PopUpButton) {
+        button.setTitle("?", for: .normal)
+        button.widthAnchor.constraint(equalToConstant: Constants.keyRightSpecialSymbolWidth).isActive = true
+        button.setTitleColor(.titleButtonColor, for: .normal)
+        button.backgroundColor = .commonButtonColor
+        button.configure(
+            primaryTitle: "?",
+            primaryAction: { [weak self] in
+                self?.insertText("?")
+            },
+            menuItems: createRightPunctuationMenuItems()
+        )
+//        button.addTarget(self, action: #selector(switchToNumbers), for: .touchUpInside)
+    }
+    
     private func configureSpaceButton(_ button: UIButton, rowIndex: Int) {
-        button.setTitle("пробел", for: .normal)
-            button.titleLabel?.font = UIFont.systemFont(ofSize: 14, weight: .regular)
-            button.setTitleColor(.secondaryLabel, for: .normal)
-            button.backgroundColor = .keyboardButtonBackground
+        button.setTitle("space", for: .normal)
+        button.titleLabel?.font = UIFont.systemFont(ofSize: 14, weight: .regular)
+        button.setTitleColor(.titleButtonColor, for: .normal)
+        button.backgroundColor = .commonButtonColor
             
-            // Критически важные настройки для растягивания
-            button.setContentHuggingPriority(.defaultLow, for: .horizontal)
-            button.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-            
-            // Явно указываем, что кнопка должна растягиваться
-            button.contentEdgeInsets = UIEdgeInsets(top: 0, left: 16, bottom: 0, right: 16)
+//      Критически важные настройки для растягивания
+        let spaceWidth = UIScreen.main.bounds.width - Constants.key123Width - Constants.keyGlobeWidth
+        - Constants.keyLeftSpecialSymbolWidth - Constants.keyRightSpecialSymbolWidth - Constants.keyReturnWidth - (5 * 6)
+        button.widthAnchor.constraint(equalToConstant: spaceWidth).isActive = true
     }
     
     private func configureReturnButton(_ button: UIButton) {
         button.setTitle("return", for: .normal)
         button.titleLabel?.font = UIFont.systemFont(ofSize: 14, weight: .medium)
-        button.backgroundColor = .systemBlue
-        button.setTitleColor(.white, for: .normal)
-        button.widthAnchor.constraint(equalToConstant: 80).isActive = true
+        button.backgroundColor = .specialButtonColor
+        button.setTitleColor(.titleButtonColor, for: .normal)
+        button.widthAnchor.constraint(equalToConstant: Constants.keyReturnWidth).isActive = true
         button.addTarget(self, action: #selector(returnPressed), for: .touchUpInside)
+    }
+    
+    private func updateShiftButtonAppearance(_ button: UIButton, shiftState: ShiftButtonState) {
+        switch shiftState {
+        case .normal:
+            button.setImage(UIImage(systemName: "shift"), for: .normal)
+        case .shift:
+            button.setImage(UIImage(systemName: "shift.fill"), for: .normal)
+        case .caps:
+            button.setImage(UIImage(systemName: "capslock.fill"), for: .normal)
+            button.tintColor = .white
+        }
     }
 }
 
 // MARK: - Обработка нажатий
 extension KeyboardViewController {
     @objc private func keyPressed(_ sender: UIButton) {
-        guard let key = sender.titleLabel?.text?.lowercased() else { return }
+        guard let key = sender.titleLabel?.text?.uppercased() else { return }
         
         // Тактильная обратная связь
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -504,29 +507,18 @@ extension KeyboardViewController {
     }
     
     private func startContinuousBackspace() {
-        // Таймер для непрерывного удаления
+        backspaceTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { (timer) in
+            self.handlDeleteButtonPressed()
+        }
     }
     
     private func stopContinuousBackspace() {
-        // Остановка таймера
+        backspaceTimer?.invalidate()
+        backspaceTimer = nil
     }
     
     private func toggleShift() {
-        // Логика переключения регистра
-    }
-}
-
-enum StackViewBuilder {
-    static func BuildStackView() -> UIStackView {
-        let stackView = UIStackView(arrangedSubviews: [])
-        stackView.translatesAutoresizingMaskIntoConstraints = false
-        stackView.axis = .horizontal
-        stackView.distribution = .fill
-        stackView.alignment = .fill
-        stackView.spacing = 5
-//        stackView.spacing = UIStackView.spacingUseSystem
-        stackView.layoutMargins = UIEdgeInsets(top: 0, left: 5, bottom: 0, right: 5)
-        stackView.isLayoutMarginsRelativeArrangement = true
-        return stackView
+        shiftButtonState = shiftButtonState == .normal ? .shift : .normal
+        updateShiftButtonAppearance(shiftButton, shiftState: shiftButtonState)
     }
 }
