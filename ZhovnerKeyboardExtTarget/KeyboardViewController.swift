@@ -13,7 +13,7 @@ final class KeyboardViewController: UIInputViewController {
 
     private var shiftButton = UIButton()
     
-    private var keys: [UIButton] = []
+    private var keysButtons: [PopUpButton] = []
     private var paddingViews: [UIButton] = []
     private var backspaceTimer: Timer?
     
@@ -103,6 +103,7 @@ final class KeyboardViewController: UIInputViewController {
         for key in keys {
             let button = createKeyButton(for: key, rowIndex: rowIndex)
             rowStack.addArrangedSubview(button)
+            keysButtons.append(button)
         }
         
         return rowStack
@@ -145,7 +146,7 @@ final class KeyboardViewController: UIInputViewController {
     }
     
     func loadKeys(){
-        keys.forEach{$0.removeFromSuperview()}
+//        keys.forEach{$0.removeFromSuperview()}
         paddingViews.forEach{$0.removeFromSuperview()}
             
         //let buttonWidth = (UIScreen.main.bounds.width - 6) / CGFloat(Constants.letterKeys[0].count)
@@ -180,7 +181,7 @@ final class KeyboardViewController: UIInputViewController {
                 button.addTarget(self, action: #selector(keyUntouched), for: .touchDragExit)
                 button.addTarget(self, action: #selector(keyMultiPress(_:event:)), for: .touchDownRepeat)
                 
-                keys.append(button)
+//                keys.append(button)
                 
                 //top row is longest row so it should decide button width
 //                print("button width: ", buttonWidth)
@@ -299,7 +300,7 @@ extension KeyboardViewController {
 
 // MARK: - Создание кнопок
 extension KeyboardViewController {
-    private func createKeyButton(for key: String, rowIndex: Int) -> UIButton {
+    private func createKeyButton(for key: String, rowIndex: Int) -> PopUpButton {
         let button = PopUpButton()
         button.translatesAutoresizingMaskIntoConstraints = false
         
@@ -328,7 +329,7 @@ extension KeyboardViewController {
         case "return":
             configureReturnButton(button)
         default:
-            configureLetterButton(button, key: key.uppercased())
+            configureLetterButton(button, key: key)
         }
         
         // Constraints для единообразия
@@ -341,17 +342,40 @@ extension KeyboardViewController {
     
     private func configureLetterButton(_ button: PopUpButton, key: String) {
         button.setTitleColor(.titleButtonColor, for: .normal)
-        button.setTitle(key.uppercased(), for: .normal)
+        let changeCaseAction: (String) -> Void = { [weak self] key in
+            guard let self = self else { return }
+            switch shiftButtonState {
+            case .normal:
+                button.setTitle(key.lowercased(), for: .normal)
+            case .shift, .caps:
+                button.setTitle(key.uppercased(), for: .normal)
+            }
+        }
+        
+        
         button.widthAnchor.constraint(equalToConstant: 32).isActive = true
         // Обработка нажатия
         button.configure(
             backgroundColor: .commonButtonColor,
             primaryTitle: key,
             primaryAction: { [weak self] in
-                self?.insertText(key)
+                guard let self = self else { return }
+                switch shiftButtonState {
+                case .normal:
+                    insertText(key.lowercased())
+                case .shift:
+                    insertText(key.uppercased())
+                    shiftButtonState = .normal
+                    updateShiftButtonAppearance(shiftButton, shiftState: shiftButtonState)
+                    keysButtons.forEach { $0.shiftStateChangeCalled() }
+                case .caps:
+                    insertText(key.uppercased())
+                }
             },
-            menuItems: []
+            menuItems: [],
+            shiftAction: changeCaseAction
         )
+        changeCaseAction(key)
     }
     
     private func configureShiftButton(_ button: PopUpButton) {
@@ -495,7 +519,7 @@ extension KeyboardViewController {
 // MARK: - Обработка нажатий
 extension KeyboardViewController {
     @objc private func keyPressed(_ sender: UIButton) {
-        guard let key = sender.titleLabel?.text?.uppercased() else { return }
+        guard let key = sender.titleLabel?.text else { return }
         
         // Тактильная обратная связь
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -527,5 +551,6 @@ extension KeyboardViewController {
     private func toggleShift() {
         shiftButtonState = shiftButtonState == .normal ? .shift : .normal
         updateShiftButtonAppearance(shiftButton, shiftState: shiftButtonState)
+        keysButtons.forEach { $0.shiftStateChangeCalled() }
     }
 }

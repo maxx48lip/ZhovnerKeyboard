@@ -24,6 +24,7 @@ final class PopUpButton: UIButton {
     private var longPressGesture: UILongPressGestureRecognizer!
     private var usedBackgroundColor: UIColor = .clear
     private var alternativeLongPressAction: ((UILongPressGestureRecognizer) -> Void)?
+    private var shiftAction: ((String) -> Void)? = nil
     
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -58,7 +59,8 @@ final class PopUpButton: UIButton {
         primaryAction: @escaping () -> Void,
         menuItems: [MenuItemModel] = [],
         preselectedIndex: Int = 0,
-        alternativeLongPressAction: ((UILongPressGestureRecognizer) -> Void)? = nil
+        alternativeLongPressAction: ((UILongPressGestureRecognizer) -> Void)? = nil,
+        shiftAction: ((String) -> Void)? = nil
     ) {
         usedBackgroundColor = backgroundColor
         self.backgroundColor = backgroundColor
@@ -68,13 +70,19 @@ final class PopUpButton: UIButton {
         self.preselectedIndex = preselectedIndex
         self.selectedMenuIndex = preselectedIndex
         self.alternativeLongPressAction = alternativeLongPressAction
+        self.shiftAction = shiftAction
         
         // Обновляем жест в зависимости от наличия menuItems
         setupLongPressGesture()
     }
     
+    func shiftStateChangeCalled() {
+        guard let currentTitle else { return }
+        shiftAction?(currentTitle)
+    }
+    
     // MARK: - Shadow Setup
-    func setupShadow() {
+    private func setupShadow() {
         layer.shadowColor = UIColor.black.cgColor
         layer.shadowOffset = CGSize(width: 0, height: 1)
         layer.shadowRadius = 0.5
@@ -146,7 +154,6 @@ final class PopUpButton: UIButton {
     private func showCustomPopover() {
         // Защита от пустого menuItems
         guard !menuItems.isEmpty else {
-            print("PopUpButton: menuItems is empty, skipping popover")
             return
         }
         
