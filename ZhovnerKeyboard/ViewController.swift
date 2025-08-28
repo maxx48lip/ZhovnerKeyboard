@@ -16,7 +16,7 @@ final class ViewController: UIViewController {
         textfield.borderStyle = .roundedRect
         textfield.placeholder = "Type smth..."
         textfield.font = UIFont.systemFont(ofSize: 15)
-        textfield.backgroundColor = .lightGray
+        textfield.backgroundColor = UITraitCollection.current.userInterfaceStyle == .dark ? .darkGray : .lightGray
         textfield.layer.cornerRadius = 25
         textfield.layer.borderWidth = 1.5
         textfield.clipsToBounds = true
