@@ -97,17 +97,7 @@ final class KeyboardViewController: UIInputViewController {
     
     private func createKeyboardRows(for keyboardState: KeyboardState) {
         keyRows = []
-        var keyboardLayout: [[String]]
-        switch keyboardState {
-        case .englishLetters:
-            keyboardLayout = buttonsBuilder.makeEnglishLayout()
-        case .russianLetters:
-            keyboardLayout = buttonsBuilder.makeRussianLayout()
-        case .numbers:
-            keyboardLayout = buttonsBuilder.makeRussianLayout()
-        case .symbols:
-            keyboardLayout = buttonsBuilder.makeRussianLayout()
-        }
+        let keyboardLayout = buttonsBuilder.makeKeyboardLayout(for: keyboardState)
         
         for (index, rowKeys) in keyboardLayout.enumerated() {
             let rowStack = createKeyboardRow(for: rowKeys, rowIndex: index)

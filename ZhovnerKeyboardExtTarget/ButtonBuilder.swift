@@ -37,26 +37,19 @@ final class ButtonBuilder {
         self.switchToNumbers = switchToNumbers
     }
     
-    func makeEnglishLayout() -> [[String]] {
-        let keyboardLayout = [
-            ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"],
-            ["a", "s", "d", "f", "g", "h", "j", "k", "l"],
-            ["shift", "z", "x", "c", "v", "b", "n", "m", "backspace"],
-            ["123", "globe", "specialSymbolLeft", "space", "specialSymbolRight", "return"]
-        ]
-        return keyboardLayout
+    func makeKeyboardLayout(for state: KeyboardState) -> [[String]] {
+        switch state {
+        case .englishLetters:
+            return Constants.englishKeyboardLayout
+        case .russianLetters:
+            return Constants.russianKeyboardLayout
+        case .numbers:
+            return Constants.numbersKeyboardLayout
+        case .symbols:
+            return Constants.symbolsKeyboardLayout
+        }
     }
-    
-    func makeRussianLayout() -> [[String]] {
-        let keyboardLayout = [
-            ["й", "ц", "у", "к", "е", "н", "г", "ш", "щ", "з", "х"],
-            ["ф", "ы", "в", "а", "п", "р", "о", "л", "д", "ж", "э"],
-            ["shift", "я", "ч", "с", "м", "и", "т", "ь", "б", "ю", "backspace"],
-            ["123", "globe", "specialSymbolLeft", "space", "specialSymbolRight", "return"]
-        ]
-        return keyboardLayout
-    }
-    
+
     func createLeftPunctuationMenuItems() -> PopUpButton.MenuItemsModel {
         let punctuationPairs = [
             (".", ".", "circle.fill"),
@@ -95,60 +88,6 @@ final class ButtonBuilder {
         return PopUpButton.MenuItemsModel(items: items)
     }
     
-    func createRussianEMenuItems() -> PopUpButton.MenuItemsModel {
-        let punctuationPairs = [
-            "Е", "Ё"
-            
-        ]
-        
-        let items: [PopUpButton.MenuItemModel] = punctuationPairs.map { symbol in
-            PopUpButton.MenuItemModel(
-                title: symbol,
-                action: { [weak self] in
-                    guard let self = self else { return }
-                    switch shiftButtonState {
-                    case .normal:
-                        insertText(symbol.lowercased())
-                    case .shift:
-                        insertText(symbol.uppercased())
-                        shiftButtonState = .normal
-                        shiftPressed(.normal)
-                    case .caps:
-                        insertText(symbol.uppercased())
-                    }
-                }
-            )
-        }
-        return PopUpButton.MenuItemsModel(items: items, adjustPopOverArrowDirection: .up)
-    }
-
-    func createRussianSoftSignMenuItems() -> PopUpButton.MenuItemsModel {
-        let punctuationPairs = [
-            "Ь", "Ъ"
-            
-        ]
-        let items: [PopUpButton.MenuItemModel] = punctuationPairs.map { symbol in
-            PopUpButton.MenuItemModel(
-                title: symbol,
-                action: { [weak self] in
-                    guard let self = self else { return }
-                    switch shiftButtonState {
-                    case .normal:
-                        insertText(symbol.lowercased())
-                    case .shift:
-                        insertText(symbol.uppercased())
-                        shiftButtonState = .normal
-                        shiftPressed(.normal)
-                    case .caps:
-                        insertText(symbol.uppercased())
-                    }
-                }
-            )
-        }
-        return PopUpButton.MenuItemsModel(items: items)
-        
-    }
-    
     func configureLetterButton(_ button: PopUpButton, keyboardState: KeyboardState, key: String) {
         button.setTitleColor(.titleButtonColor, for: .normal)
         let changeCaseAction: (String?) -> Void = { [weak self] key in
@@ -168,15 +107,7 @@ final class ButtonBuilder {
             button.widthAnchor.constraint(equalToConstant: Constants.keyRussianLetterWidth).isActive = true
         }
         
-        var menuItems: PopUpButton.MenuItemsModel?
-        switch key {
-        case "ь":
-            menuItems = createRussianSoftSignMenuItems()
-        case "е":
-            menuItems = createRussianEMenuItems()
-        default:
-            menuItems = nil
-        }
+        let menuItems = createMenuItems(for: key, keyboardState: keyboardState)
         
         // Обработка нажатия
         button.configure(
@@ -374,5 +305,45 @@ final class ButtonBuilder {
             backspaceTimer?.invalidate()
             backspaceTimer = nil
         }
+    }
+    
+    private func createMenuItems(
+        for key: String,
+        keyboardState: KeyboardState
+    ) -> PopUpButton.MenuItemsModel? {
+        var layout: [String: ([String], UIPopoverArrowDirection)]
+        
+        switch keyboardState {
+        case .englishLetters:
+            layout = Constants.englishPopUpKeyboardLayout
+        case .russianLetters:
+            layout = Constants.russianPopUpKeyboardLayout
+        case .numbers:
+            layout = Constants.numbersPopUpKeyboardLayout
+        case .symbols:
+            layout = Constants.symbolsPopUpKeyboardLayout
+        }
+        
+        guard let menuItems = layout[key] else { return nil }
+
+        let items: [PopUpButton.MenuItemModel] = menuItems.0.map { symbol in
+            PopUpButton.MenuItemModel(
+                title: symbol,
+                action: { [weak self] in
+                    guard let self = self else { return }
+                    switch shiftButtonState {
+                    case .normal:
+                        insertText(symbol.lowercased())
+                    case .shift:
+                        insertText(symbol.uppercased())
+                        shiftButtonState = .normal
+                        shiftPressed(.normal)
+                    case .caps:
+                        insertText(symbol.uppercased())
+                    }
+                }
+            )
+        }
+        return PopUpButton.MenuItemsModel(items: items, adjustPopOverArrowDirection: menuItems.1)
     }
 }
