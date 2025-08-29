@@ -7,8 +7,9 @@
 
 import Foundation
 
-enum KeyboardState{
-    case letters
+enum KeyboardState {
+    case englishLetters
+    case russianLetters
     case numbers
     case symbols
 }

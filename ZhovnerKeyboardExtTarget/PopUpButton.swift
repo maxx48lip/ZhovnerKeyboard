@@ -8,15 +8,21 @@
 import UIKit
 
 final class PopUpButton: UIButton {
-    
-    // Структура для элементов меню
     struct MenuItemModel {
         let title: String
         let action: () -> Void
     }
+    struct MenuItemsModel {
+        let items: [MenuItemModel]
+        let adjustPopOverArrowDirection: UIPopoverArrowDirection
+        init(items: [MenuItemModel], adjustPopOverArrowDirection: UIPopoverArrowDirection = .down) {
+            self.items = items
+            self.adjustPopOverArrowDirection = adjustPopOverArrowDirection
+        }
+    }
 
     private var primaryAction: (() -> Void)?
-    private var menuItems: [MenuItemModel] = []
+    private var menuItems: MenuItemsModel?
     private var preselectedIndex: Int = 0
     private var popoverController: UIViewController?
     private var menuButtons: [UIButton] = []
@@ -24,7 +30,8 @@ final class PopUpButton: UIButton {
     private var longPressGesture: UILongPressGestureRecognizer!
     private var usedBackgroundColor: UIColor = .clear
     private var alternativeLongPressAction: ((UILongPressGestureRecognizer) -> Void)?
-    private var shiftAction: ((String) -> Void)? = nil
+    private var shiftAction: ((String?) -> Void)? = nil
+    private var adjustPopOverArrowDirrection: UIPopoverArrowDirection = .down
     
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -57,10 +64,10 @@ final class PopUpButton: UIButton {
         backgroundColor: UIColor,
         primaryTitle: String?,
         primaryAction: @escaping () -> Void,
-        menuItems: [MenuItemModel] = [],
+        menuItems: MenuItemsModel? = nil,
         preselectedIndex: Int = 0,
         alternativeLongPressAction: ((UILongPressGestureRecognizer) -> Void)? = nil,
-        shiftAction: ((String) -> Void)? = nil
+        shiftAction: ((String?) -> Void)? = nil
     ) {
         usedBackgroundColor = backgroundColor
         self.backgroundColor = backgroundColor
@@ -77,7 +84,6 @@ final class PopUpButton: UIButton {
     }
     
     func shiftStateChangeCalled() {
-        guard let currentTitle else { return }
         shiftAction?(currentTitle)
     }
     
@@ -100,10 +106,10 @@ final class PopUpButton: UIButton {
         longPressGesture = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
         
         // Настраиваем длительность в зависимости от наличия menuItems
-        if menuItems.isEmpty {
-            longPressGesture.minimumPressDuration = 0.5 // Более длинное нажатие для альтернативного действия
-        } else {
+        if let menuItems = menuItems, !menuItems.items.isEmpty {
             longPressGesture.minimumPressDuration = 0.3 // Стандартное для popover
+        } else {
+            longPressGesture.minimumPressDuration = 0.5 // Более длинное нажатие для альтернативного действия
         }
         
         addGestureRecognizer(longPressGesture)
@@ -115,7 +121,8 @@ final class PopUpButton: UIButton {
     }
     
     @objc private func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
-        guard !menuItems.isEmpty else {
+        guard let menuItems = menuItems,
+              !menuItems.items.isEmpty else {
             alternativeLongPressAction?(gesture)
             return
         }
@@ -141,8 +148,8 @@ final class PopUpButton: UIButton {
             
         case .ended, .cancelled:
             // Выполняем выбранное действие
-            if selectedMenuIndex < menuItems.count {
-                menuItems[selectedMenuIndex].action()
+            if selectedMenuIndex < menuItems.items.count {
+                menuItems.items[selectedMenuIndex].action()
             }
             hideCustomPopover()
             
@@ -152,22 +159,21 @@ final class PopUpButton: UIButton {
     }
     
     private func showCustomPopover() {
-        // Защита от пустого menuItems
-        guard !menuItems.isEmpty else {
-            return
-        }
+        guard let menuItems = menuItems,
+            !menuItems.items.isEmpty
+        else { return }
         
         popoverController?.dismiss(animated: false)
         
         let popoverVC = UIViewController()
         popoverVC.modalPresentationStyle = .popover
         
-        // Горизонтальный размер based on number of items
         let itemWidth: CGFloat = 60
         let spacing: CGFloat = 8
-        let totalWidth = CGFloat(menuItems.count) * itemWidth + CGFloat(menuItems.count - 1) * spacing
+        let totalWidth = CGFloat(menuItems.items.count) * itemWidth + CGFloat(menuItems.items.count - 1) * spacing
         let totalHeight: CGFloat = 50
         
+        // Используем исходный размер
         popoverVC.preferredContentSize = CGSize(width: totalWidth, height: totalHeight)
         popoverVC.view.backgroundColor = .clear
         
@@ -179,7 +185,6 @@ final class PopUpButton: UIButton {
         containerView.layer.shadowOffset = CGSize(width: 0, height: 3)
         containerView.layer.shadowRadius = 6
         
-        // Горизонтальный StackView
         let stackView = UIStackView()
         stackView.axis = .horizontal
         stackView.distribution = .fillEqually
@@ -187,13 +192,12 @@ final class PopUpButton: UIButton {
         stackView.alignment = .center
         
         menuButtons.removeAll()
-        for (index, menuItem) in menuItems.enumerated() {
+        for (index, menuItem) in menuItems.items.enumerated() {
             let button = createMenuButton(title: menuItem.title, index: index)
             menuButtons.append(button)
             stackView.addArrangedSubview(button)
         }
         
-        // Выделяем предвыбранную кнопку
         updateButtonSelection()
         
         popoverVC.view.addSubview(containerView)
@@ -202,9 +206,14 @@ final class PopUpButton: UIButton {
         containerView.translatesAutoresizingMaskIntoConstraints = false
         stackView.translatesAutoresizingMaskIntoConstraints = false
         
+        if menuItems.adjustPopOverArrowDirection == .down {
+            containerView.topAnchor.constraint(equalTo: popoverVC.view.topAnchor).isActive = true
+        } else {
+            containerView.bottomAnchor.constraint(equalTo: popoverVC.view.bottomAnchor).isActive = true
+        }
+        
         NSLayoutConstraint.activate([
             containerView.centerXAnchor.constraint(equalTo: popoverVC.view.centerXAnchor),
-            containerView.topAnchor.constraint(equalTo: popoverVC.view.topAnchor),
             containerView.widthAnchor.constraint(equalToConstant: totalWidth),
             containerView.heightAnchor.constraint(equalToConstant: totalHeight),
             
@@ -249,7 +258,7 @@ final class PopUpButton: UIButton {
         
         return button
     }
-    
+
     private func updateButtonSelection() {
         for (index, button) in menuButtons.enumerated() {
             if index == selectedMenuIndex {

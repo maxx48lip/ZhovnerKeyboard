@@ -5,6 +5,374 @@
 //  Created by Максим Павлов on 26.08.2025.
 //
 
+import UIKit
+
 final class ButtonBuilder {
-    //func 
+    
+    var shiftButtonState: ShiftButtonState = .shift
+    
+    private var backspaceTimer: Timer?
+    private var insertText: ((String) -> Void) = { _ in }
+    private var deleteBackward: (() -> Void) = {}
+    
+    private var returnPressed: (() -> Void) = {}
+    private var handleGlobeButton: (() -> Void) = {}
+    private var shiftPressed: ((ShiftButtonState) -> Void) = { _ in }
+    private var switchToNumbers: (() -> Void) = {}
+    
+    func configure(
+        insertText: @escaping (String) -> Void,
+        deleteBackward: @escaping () -> Void,
+        returnPressed: @escaping (() -> Void),
+        handleGlobeButton: @escaping (() -> Void),
+        shiftPressed: @escaping ((ShiftButtonState) -> Void),
+        switchToNumbers: @escaping (() -> Void)
+        
+    ) {
+        self.insertText = insertText
+        self.deleteBackward = deleteBackward
+        self.returnPressed = returnPressed
+        self.handleGlobeButton = handleGlobeButton
+        self.shiftPressed = shiftPressed
+        self.switchToNumbers = switchToNumbers
+    }
+    
+    func makeEnglishLayout() -> [[String]] {
+        let keyboardLayout = [
+            ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"],
+            ["a", "s", "d", "f", "g", "h", "j", "k", "l"],
+            ["shift", "z", "x", "c", "v", "b", "n", "m", "backspace"],
+            ["123", "globe", "specialSymbolLeft", "space", "specialSymbolRight", "return"]
+        ]
+        return keyboardLayout
+    }
+    
+    func makeRussianLayout() -> [[String]] {
+        let keyboardLayout = [
+            ["й", "ц", "у", "к", "е", "н", "г", "ш", "щ", "з", "х"],
+            ["ф", "ы", "в", "а", "п", "р", "о", "л", "д", "ж", "э"],
+            ["shift", "я", "ч", "с", "м", "и", "т", "ь", "б", "ю", "backspace"],
+            ["123", "globe", "specialSymbolLeft", "space", "specialSymbolRight", "return"]
+        ]
+        return keyboardLayout
+    }
+    
+    func createLeftPunctuationMenuItems() -> PopUpButton.MenuItemsModel {
+        let punctuationPairs = [
+            (".", ".", "circle.fill"),
+            (";", ";", "semicolon"),
+            (":", ":", "coloncurrencysign.circle.fill"),
+            
+        ]
+        
+        let items: [PopUpButton.MenuItemModel] = punctuationPairs.map { (symbol, title, systemImage) in
+            PopUpButton.MenuItemModel(
+                title: symbol,
+                action: { [weak self] in
+                    self?.insertText(symbol)
+                }
+            )
+        }
+        return PopUpButton.MenuItemsModel(items: items)
+    }
+    
+    func createRightPunctuationMenuItems() -> PopUpButton.MenuItemsModel {
+        let punctuationPairs = [
+            ("(", "(", "parenleft"),
+            (")", ")", "parenright"),
+            ("!", "!", "exclamationmark.circle.fill"),
+            
+        ]
+        
+        let items: [PopUpButton.MenuItemModel] = punctuationPairs.map { (symbol, title, systemImage) in
+            PopUpButton.MenuItemModel(
+                title: symbol,
+                action: { [weak self] in
+                    self?.insertText(symbol)
+                }
+            )
+        }
+        return PopUpButton.MenuItemsModel(items: items)
+    }
+    
+    func createRussianEMenuItems() -> PopUpButton.MenuItemsModel {
+        let punctuationPairs = [
+            "Е", "Ё"
+            
+        ]
+        
+        let items: [PopUpButton.MenuItemModel] = punctuationPairs.map { symbol in
+            PopUpButton.MenuItemModel(
+                title: symbol,
+                action: { [weak self] in
+                    guard let self = self else { return }
+                    switch shiftButtonState {
+                    case .normal:
+                        insertText(symbol.lowercased())
+                    case .shift:
+                        insertText(symbol.uppercased())
+                        shiftButtonState = .normal
+                        shiftPressed(.normal)
+                    case .caps:
+                        insertText(symbol.uppercased())
+                    }
+                }
+            )
+        }
+        return PopUpButton.MenuItemsModel(items: items, adjustPopOverArrowDirection: .up)
+    }
+
+    func createRussianSoftSignMenuItems() -> PopUpButton.MenuItemsModel {
+        let punctuationPairs = [
+            "Ь", "Ъ"
+            
+        ]
+        let items: [PopUpButton.MenuItemModel] = punctuationPairs.map { symbol in
+            PopUpButton.MenuItemModel(
+                title: symbol,
+                action: { [weak self] in
+                    guard let self = self else { return }
+                    switch shiftButtonState {
+                    case .normal:
+                        insertText(symbol.lowercased())
+                    case .shift:
+                        insertText(symbol.uppercased())
+                        shiftButtonState = .normal
+                        shiftPressed(.normal)
+                    case .caps:
+                        insertText(symbol.uppercased())
+                    }
+                }
+            )
+        }
+        return PopUpButton.MenuItemsModel(items: items)
+        
+    }
+    
+    func configureLetterButton(_ button: PopUpButton, keyboardState: KeyboardState, key: String) {
+        button.setTitleColor(.titleButtonColor, for: .normal)
+        let changeCaseAction: (String?) -> Void = { [weak self] key in
+            guard let self = self else { return }
+            switch shiftButtonState {
+            case .normal:
+                button.setTitle(key?.lowercased(), for: .normal)
+            case .shift, .caps:
+                button.setTitle(key?.uppercased(), for: .normal)
+            }
+        }
+        
+        switch keyboardState {
+        case .englishLetters, .numbers, .symbols:
+            button.widthAnchor.constraint(equalToConstant: Constants.keyEnglishLetterWidth).isActive = true
+        case .russianLetters:
+            button.widthAnchor.constraint(equalToConstant: Constants.keyRussianLetterWidth).isActive = true
+        }
+        
+        var menuItems: PopUpButton.MenuItemsModel?
+        switch key {
+        case "ь":
+            menuItems = createRussianSoftSignMenuItems()
+        case "е":
+            menuItems = createRussianEMenuItems()
+        default:
+            menuItems = nil
+        }
+        
+        // Обработка нажатия
+        button.configure(
+            backgroundColor: .commonButtonColor,
+            primaryTitle: key,
+            primaryAction: { [weak self] in
+                guard let self = self else { return }
+                switch shiftButtonState {
+                case .normal:
+                    insertText(key.lowercased())
+                case .shift:
+                    insertText(key.uppercased())
+                    shiftButtonState = .normal
+                    shiftPressed(.normal)
+                case .caps:
+                    insertText(key.uppercased())
+                }
+            },
+            menuItems: menuItems,
+            shiftAction: changeCaseAction
+        )
+        changeCaseAction(key)
+    }
+    
+    func configureShiftButton(_ button: PopUpButton, keyboardState: KeyboardState) {
+        button.setImage(UIImage(systemName: "shift"), for: .normal)
+        button.tintColor = .shiftButtonTintColor
+        switch keyboardState {
+        case .englishLetters, .numbers, .symbols:
+            button.widthAnchor.constraint(equalToConstant: Constants.keyShiftWidth).isActive = true
+        case .russianLetters:
+            button.widthAnchor.constraint(equalToConstant: Constants.keyRussianLetterWidth).isActive = true
+        }
+        let changeCaseAction: (String?) -> Void = { [weak self] _ in
+            guard let self = self else { return }
+            switch shiftButtonState {
+            case .normal:
+                button.setImage(UIImage(systemName: "shift"), for: .normal)
+            case .shift:
+                button.setImage(UIImage(systemName: "shift.fill"), for: .normal)
+            case .caps:
+                button.setImage(UIImage(systemName: "capslock.fill"), for: .normal)
+                button.tintColor = .white
+            }
+        }
+        button.configure(
+            backgroundColor: .shiftButtonColor,
+            primaryTitle: nil,
+            primaryAction: { [weak self] in
+                guard let self else { return }
+                let newShiftState: ShiftButtonState = shiftButtonState == .normal ? .shift : .normal
+                shiftButtonState = newShiftState
+                shiftPressed(shiftButtonState)
+            },
+            menuItems: nil,
+            shiftAction: changeCaseAction
+        )
+        changeCaseAction("")
+    }
+    
+    func configureBackspaceButton(_ button: PopUpButton, keyboardState: KeyboardState) {
+        button.setImage(UIImage(systemName: "delete.left"), for: .normal)
+        button.tintColor = .titleButtonColor
+        button.backgroundColor = .specialButtonColor
+        
+        switch keyboardState {
+        case .englishLetters, .numbers, .symbols:
+            button.widthAnchor.constraint(equalToConstant: Constants.keyBackspaceWidth).isActive = true
+        case .russianLetters:
+            button.widthAnchor.constraint(equalToConstant: Constants.keyRussianLetterWidth).isActive = true
+        }
+        
+        button.configure(
+            backgroundColor: .specialButtonColor,
+            primaryTitle: nil,
+            primaryAction: { [weak self] in
+                self?.deleteBackward()
+            },
+            menuItems: nil,
+            alternativeLongPressAction: { [weak self] gesture in
+                self?.handlDeleteButtonPressed(gesture: gesture)
+            }
+        )
+    }
+    
+    func configureNumberSwitchButton(_ button: PopUpButton) {
+        button.titleLabel?.font = UIFont.systemFont(ofSize: 14, weight: .medium)
+        button.widthAnchor.constraint(equalToConstant: Constants.key123Width).isActive = true
+        button.setTitleColor(.titleButtonColor, for: .normal)
+        button.configure(
+            backgroundColor: .specialButtonColor,
+            primaryTitle: "123",
+            primaryAction: { [weak self] in
+                self?.switchToNumbers()
+            },
+            menuItems: nil
+        )
+    }
+    
+    func configureGlobeButton(_ button: PopUpButton) {
+        button.setImage(UIImage(systemName: "globe"), for: .normal)
+        button.tintColor = .titleButtonColor
+        button.widthAnchor.constraint(equalToConstant: Constants.keyGlobeWidth).isActive = true
+        button.configure(
+            backgroundColor: .specialButtonColor,
+            primaryTitle: nil,
+            primaryAction: { [weak self] in
+                self?.handleGlobeButton()
+            },
+            menuItems: nil
+        )
+    }
+    
+    func configureLeftSpecialSymbolButton(_ button: PopUpButton) {
+        button.setTitle(",", for: .normal)
+        button.titleLabel?.font = UIFont.systemFont(ofSize: 14, weight: .medium)
+        button.widthAnchor.constraint(equalToConstant: Constants.keyLeftSpecialSymbolWidth).isActive = true
+        button.setTitleColor(.titleButtonColor, for: .normal)
+        button.configure(
+            backgroundColor: .commonButtonColor,
+            primaryTitle: ",",
+            primaryAction: { [weak self] in
+                self?.insertText(",")
+            },
+            menuItems: createLeftPunctuationMenuItems()
+        )
+    }
+    
+    func configureRightSpecialSymbolButton(_ button: PopUpButton) {
+        button.setTitle("?", for: .normal)
+        button.widthAnchor.constraint(equalToConstant: Constants.keyRightSpecialSymbolWidth).isActive = true
+        button.setTitleColor(.titleButtonColor, for: .normal)
+        button.configure(
+            backgroundColor: .commonButtonColor,
+            primaryTitle: "?",
+            primaryAction: { [weak self] in
+                self?.insertText("?")
+            },
+            menuItems: createRightPunctuationMenuItems(),
+            preselectedIndex: 2
+        )
+    }
+    
+    func configureSpaceButton(_ button: PopUpButton, rowIndex: Int) {
+        button.titleLabel?.font = UIFont.systemFont(ofSize: 14, weight: .regular)
+        button.setTitleColor(.titleButtonColor, for: .normal)
+            
+//      Критически важные настройки для растягивания
+        let spaceWidth = UIScreen.main.bounds.width - Constants.key123Width - Constants.keyGlobeWidth
+        - Constants.keyLeftSpecialSymbolWidth - Constants.keyRightSpecialSymbolWidth - Constants.keyReturnWidth - (5 * 6)
+        button.widthAnchor.constraint(equalToConstant: spaceWidth).isActive = true
+        
+        button.configure(
+            backgroundColor: .commonButtonColor,
+            primaryTitle: "space",
+            primaryAction: { [weak self] in
+                self?.insertText(" ")
+            },
+            menuItems: nil
+        )
+    }
+    
+    func configureReturnButton(_ button: PopUpButton) {
+        button.titleLabel?.font = UIFont.systemFont(ofSize: 14, weight: .medium)
+        button.setTitleColor(.titleButtonColor, for: .normal)
+        button.widthAnchor.constraint(equalToConstant: Constants.keyReturnWidth).isActive = true
+        button.configure(
+            backgroundColor: .specialButtonColor,
+            primaryTitle: "return",
+            primaryAction: { [weak self] in
+                self?.returnPressed()
+            },
+            menuItems: nil
+        )
+    }
+    
+    func updateShiftButtonAppearance(_ button: UIButton, shiftState: ShiftButtonState) {
+        switch shiftState {
+        case .normal:
+            button.setImage(UIImage(systemName: "shift"), for: .normal)
+        case .shift:
+            button.setImage(UIImage(systemName: "shift.fill"), for: .normal)
+        case .caps:
+            button.setImage(UIImage(systemName: "capslock.fill"), for: .normal)
+            button.tintColor = .white
+        }
+    }
+    
+    private func handlDeleteButtonPressed(gesture: UILongPressGestureRecognizer) {
+        if gesture.state == .began {
+            backspaceTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { (timer) in
+                self.deleteBackward()
+            }
+        } else if gesture.state == .ended || gesture.state == .cancelled {
+            backspaceTimer?.invalidate()
+            backspaceTimer = nil
+        }
+    }
 }
