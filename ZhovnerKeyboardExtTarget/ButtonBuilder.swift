@@ -19,6 +19,8 @@ final class ButtonBuilder {
     private var handleGlobeButton: (() -> Void) = {}
     private var shiftPressed: ((ShiftButtonState) -> Void) = { _ in }
     private var switchToNumbers: (() -> Void) = {}
+    private var switchToSymbols: (() -> Void) = {}
+    private var switchToLetters: (() -> Void) = {}
     
     func configure(
         insertText: @escaping (String) -> Void,
@@ -26,7 +28,9 @@ final class ButtonBuilder {
         returnPressed: @escaping (() -> Void),
         handleGlobeButton: @escaping (() -> Void),
         shiftPressed: @escaping ((ShiftButtonState) -> Void),
-        switchToNumbers: @escaping (() -> Void)
+        switchToNumbers: @escaping (() -> Void),
+        switchToSymbols: @escaping () -> Void,
+        switchToLetters: @escaping (() -> Void) = {}
         
     ) {
         self.insertText = insertText
@@ -35,6 +39,8 @@ final class ButtonBuilder {
         self.handleGlobeButton = handleGlobeButton
         self.shiftPressed = shiftPressed
         self.switchToNumbers = switchToNumbers
+        self.switchToSymbols = switchToSymbols
+        self.switchToLetters = switchToLetters
     }
     
     func makeKeyboardLayout(for state: KeyboardState) -> [[String]] {
@@ -193,15 +199,43 @@ final class ButtonBuilder {
         )
     }
     
-    func configureNumberSwitchButton(_ button: PopUpButton) {
+    func configureLettersSwitchButton(_ button: PopUpButton, title: String) {
         button.titleLabel?.font = UIFont.systemFont(ofSize: 14, weight: .medium)
         button.widthAnchor.constraint(equalToConstant: Constants.key123Width).isActive = true
         button.setTitleColor(.titleButtonColor, for: .normal)
         button.configure(
             backgroundColor: .specialButtonColor,
-            primaryTitle: "123",
+            primaryTitle: title,
+            primaryAction: { [weak self] in
+                self?.switchToLetters()
+            },
+            menuItems: nil
+        )
+    }
+    
+    func configureNumberSwitchButton(_ button: PopUpButton, title: String) {
+        button.titleLabel?.font = UIFont.systemFont(ofSize: 14, weight: .medium)
+        button.widthAnchor.constraint(equalToConstant: Constants.key123Width).isActive = true
+        button.setTitleColor(.titleButtonColor, for: .normal)
+        button.configure(
+            backgroundColor: .specialButtonColor,
+            primaryTitle: title,
             primaryAction: { [weak self] in
                 self?.switchToNumbers()
+            },
+            menuItems: nil
+        )
+    }
+    
+    func configureSymbolsSwitchButton(_ button: PopUpButton) {
+        button.titleLabel?.font = UIFont.systemFont(ofSize: 14, weight: .medium)
+        button.widthAnchor.constraint(equalToConstant: Constants.keyShiftWidth).isActive = true
+        button.setTitleColor(.titleButtonColor, for: .normal)
+        button.configure(
+            backgroundColor: .specialButtonColor,
+            primaryTitle: "#+=",
+            primaryAction: { [weak self] in
+                self?.switchToSymbols()
             },
             menuItems: nil
         )

@@ -37,14 +37,14 @@ enum Constants {
     static let numbersKeyboardLayout: [[String]] = [
         ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
         ["-", "/", ":", ";", "(", ")", "₽", "&", "@", "\""],
-        ["#+=", ".", ",", "?", "!", "'", "backspace"],
+        ["#+=", ".", ",", "?", "!", "'", "«", "»", "backspace"],
         ["ABC", "globe", "specialSymbolLeft", "space", "specialSymbolRight", "return"]
     ]
     
     static let symbolsKeyboardLayout: [[String]] = [
         ["[", "]", "{", "}", "#", "%", "^", "*", "+", "="],
-        ["_", "\\", "|", "~", "<", ">", "$", "&", "€", "£", "•"],
-        ["123", ".", ",", "?", "!", "'", "backspace"],
+        ["_", "\\", "|", "~", "<", ">", "$", "€", "£", "•"],
+        ["123", ".", ",", "?", "!", "'", "«", "»", "backspace"],
         ["ABC", "globe", "specialSymbolLeft", "space", "specialSymbolRight", "return"]
     ]
     
@@ -53,15 +53,27 @@ enum Constants {
     static let russianPopUpKeyboardLayout: [String: ([String], UIPopoverArrowDirection)] = [
         "ь": (["ь", "ъ"], .down),
         "е": (["е", "ё"], .up),
-        ]
+    ]
     
     static let numbersPopUpKeyboardLayout: [String: ([String], UIPopoverArrowDirection)] = [
-        "ь": (["ь", "ъ"], .down),
-        "е": (["е", "ё"], .up),
-        ]
+        "-": (["–", "—", "•"], .up),
+        "/": (["/", "\\"], .up),
+        "₽": (["¥", "£", "€", "$", "₽"], .up),
+        "&": (["&", "§"], .up),
+        "\"": (["„", "“", "”", "\""], .up),
+        ".": ([".", "…"], .down),
+        "?": (["?", "¿"], .down),
+        "!": (["!", "¡"], .down),
+        "'": (["`", "‘", "’", "’"], .down)
+    ]
     
     static let symbolsPopUpKeyboardLayout: [String: ([String], UIPopoverArrowDirection)] = [
-        "ь": (["ь", "ъ"], .down),
-        "е": (["е", "ё"], .up),
+        "#": (["#", "№"], .up),
+        "%": (["%", "‰"], .up),
+        "=": (["≈", "≠", "="], .up),
+        ".": ([".", "…"], .down),
+        "?": (["?", "¿"], .down),
+        "!": (["!", "¡"], .down),
+        "'": (["`", "‘", "’", "’"], .down)
         ]
 }

@@ -11,6 +11,7 @@ final class KeyboardViewController: UIInputViewController {
     
     private var keysButtons: [PopUpButton] = []
     private var keyboardState: KeyboardState = .englishLetters
+    private var lettersKeyboard: KeyboardState = .englishLetters
 
     private var mainStackView: UIStackView = UIStackView()
     private var keyRows: [UIStackView] = []
@@ -62,15 +63,30 @@ final class KeyboardViewController: UIInputViewController {
             handleGlobeButton: { [weak self] in
                 guard let self = self else { return }
                 self.keyboardState = keyboardState == .englishLetters ? .russianLetters : .englishLetters
+                self.lettersKeyboard = keyboardState
                 setupKeyboard(for: keyboardState)
             },
             shiftPressed: { [weak self] shiftState in
                 self?.keysButtons.forEach { $0.shiftStateChangeCalled() }
             },
-            switchToNumbers: {}
+            switchToNumbers: { [weak self] in
+                guard let self = self else { return }
+                keyboardState = .numbers
+                setupKeyboard(for: keyboardState)
+            },
+            switchToSymbols: { [weak self] in
+                guard let self = self else { return }
+                keyboardState = keyboardState == .numbers ? .symbols : .numbers
+                setupKeyboard(for: keyboardState)
+            },
+            switchToLetters: { [weak self] in
+                guard let self = self else { return }
+                keyboardState = lettersKeyboard
+                setupKeyboard(for: keyboardState)
+            }
         )
     }
-    
+
     private func setupKeyboard(for keyboardState: KeyboardState) {
         reCreateMainStackView()
         createKeyboardRows(for: keyboardState)
@@ -146,7 +162,11 @@ extension KeyboardViewController {
         case "backspace":
             buttonsBuilder.configureBackspaceButton(button, keyboardState: keyboardState)
         case "123":
-            buttonsBuilder.configureNumberSwitchButton(button)
+            buttonsBuilder.configureNumberSwitchButton(button, title: key)
+        case "ABC", "АБВ":
+            buttonsBuilder.configureLettersSwitchButton(button, title: key)
+        case "#+=":
+            buttonsBuilder.configureSymbolsSwitchButton(button)
         case "globe":
             buttonsBuilder.configureGlobeButton(button)
         case "specialSymbolLeft":
