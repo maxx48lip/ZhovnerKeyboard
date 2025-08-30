@@ -17,6 +17,8 @@ final class KeyboardViewController: UIInputViewController {
     private var keyRows: [UIStackView] = []
     private let buttonsBuilder = ButtonBuilder()
     
+    private var lastPressedKey: String?
+    
     override func updateViewConstraints() {
         super.updateViewConstraints()
     }
@@ -52,13 +54,20 @@ final class KeyboardViewController: UIInputViewController {
     private func setupButtonsBuilder() {
         buttonsBuilder.configure(
             insertText: { [weak self] text in
-                self?.textDocumentProxy.insertText(text)
+                guard let self = self else { return }
+                if lastPressedKey == "." && text == " " {
+                    self.buttonsBuilder.triggerShift()
+                }
+                self.lastPressedKey = text
+                self.textDocumentProxy.insertText(text)
             },
             deleteBackward: { [weak self] in
+                self?.lastPressedKey = nil
                 self?.textDocumentProxy.deleteBackward()
             },
             returnPressed: { [weak self] in
                 self?.textDocumentProxy.insertText("\n")
+                self?.buttonsBuilder.triggerShift()
             },
             handleGlobeButton: { [weak self] in
                 guard let self = self else { return }

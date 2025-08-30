@@ -164,9 +164,7 @@ final class ButtonBuilder {
             primaryTitle: nil,
             primaryAction: { [weak self] in
                 guard let self else { return }
-                let newShiftState: ShiftButtonState = shiftButtonState == .normal ? .shift : .normal
-                shiftButtonState = newShiftState
-                shiftPressed(shiftButtonState)
+                triggerShift()
             },
             menuItems: nil,
             shiftAction: changeCaseAction
@@ -328,6 +326,12 @@ final class ButtonBuilder {
             button.setImage(UIImage(systemName: "capslock.fill"), for: .normal)
             button.tintColor = .white
         }
+    }
+    
+    func triggerShift() {
+        let newShiftState: ShiftButtonState = shiftButtonState == .normal ? .shift : .normal
+        shiftButtonState = newShiftState
+        shiftPressed(shiftButtonState)
     }
     
     private func handlDeleteButtonPressed(gesture: UILongPressGestureRecognizer) {
