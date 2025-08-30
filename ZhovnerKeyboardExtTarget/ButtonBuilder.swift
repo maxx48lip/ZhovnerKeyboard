@@ -306,9 +306,11 @@ final class ButtonBuilder {
         button.titleLabel?.font = UIFont.systemFont(ofSize: 14, weight: .medium)
         button.setTitleColor(.titleButtonColor, for: .normal)
         button.widthAnchor.constraint(equalToConstant: Constants.keyReturnWidth).isActive = true
+        button.setImage(UIImage(systemName: "return"), for: .normal)
+        button.tintColor = .titleButtonColor
         button.configure(
             backgroundColor: .specialButtonColor,
-            primaryTitle: "return",
+            primaryTitle: nil,
             primaryAction: { [weak self] in
                 self?.returnPressed()
             },

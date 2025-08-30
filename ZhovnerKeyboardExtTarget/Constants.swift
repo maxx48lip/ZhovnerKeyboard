@@ -13,7 +13,7 @@ enum Constants {
     static let keyGlobeWidth: CGFloat = 40
     static let keyShiftWidth: CGFloat = 45
     static let keyBackspaceWidth: CGFloat = 45
-    static let keyReturnWidth: CGFloat = 60
+    static let keyReturnWidth: CGFloat = 55
     static let keyLeftSpecialSymbolWidth: CGFloat = 28
     static let keyRightSpecialSymbolWidth: CGFloat = 28
     

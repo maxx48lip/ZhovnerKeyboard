@@ -8,6 +8,16 @@
 import UIKit
 
 final class PopUpButton: UIButton {
+    private enum Constants {
+        static let buttonWidth: CGFloat = 35
+        static let buttonHeight: CGFloat = 30
+        static let spacing: CGFloat = 6
+        static let popoverHeight: CGFloat = buttonHeight + 10
+        static let itemWidth: CGFloat = buttonWidth + spacing / 2
+        static let itemsHorrizontalInsets: CGFloat = 8
+        static let itemsVerticalInsets: CGFloat = 8
+    }
+
     struct MenuItemModel {
         let title: String
         let action: () -> Void
@@ -168,10 +178,10 @@ final class PopUpButton: UIButton {
         let popoverVC = UIViewController()
         popoverVC.modalPresentationStyle = .popover
         
-        let itemWidth: CGFloat = 60
-        let spacing: CGFloat = 8
+        let itemWidth: CGFloat = Constants.itemWidth
+        let spacing: CGFloat = Constants.spacing
         let totalWidth = CGFloat(menuItems.items.count) * itemWidth + CGFloat(menuItems.items.count - 1) * spacing
-        let totalHeight: CGFloat = 50
+        let totalHeight: CGFloat = Constants.popoverHeight
         
         // Используем исходный размер
         popoverVC.preferredContentSize = CGSize(width: totalWidth, height: totalHeight)
@@ -219,8 +229,14 @@ final class PopUpButton: UIButton {
             
             stackView.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
             stackView.centerYAnchor.constraint(equalTo: containerView.centerYAnchor),
-            stackView.widthAnchor.constraint(equalTo: containerView.widthAnchor, constant: -16),
-            stackView.heightAnchor.constraint(equalTo: containerView.heightAnchor, constant: -16)
+            stackView.widthAnchor.constraint(
+                equalTo: containerView.widthAnchor,
+                constant: -Constants.itemsHorrizontalInsets
+            ),
+            stackView.heightAnchor.constraint(
+                equalTo: containerView.heightAnchor,
+                constant: -Constants.itemsVerticalInsets
+            )
         ])
         
         if let popover = popoverVC.popoverPresentationController {
@@ -248,13 +264,13 @@ final class PopUpButton: UIButton {
         button.setTitle(title, for: .normal)
         button.tag = index
         button.isUserInteractionEnabled = false // Отключаем обычные тапы
-        button.titleLabel?.font = UIFont.systemFont(ofSize: 18, weight: .regular)
+        button.titleLabel?.font = UIFont.systemFont(ofSize: 16, weight: .regular)
         button.layer.cornerRadius = 8
         button.layer.masksToBounds = true
         
         // Constraints для размера
-        button.widthAnchor.constraint(equalToConstant: 55).isActive = true
-        button.heightAnchor.constraint(equalToConstant: 40).isActive = true
+        button.widthAnchor.constraint(equalToConstant: Constants.buttonWidth).isActive = true
+        button.heightAnchor.constraint(equalToConstant: Constants.buttonHeight).isActive = true
         
         return button
     }
@@ -278,8 +294,8 @@ final class PopUpButton: UIButton {
     private func selectButtonAtLocation(_ location: CGPoint) {
         guard !menuButtons.isEmpty else { return }
         
-        let buttonWidth: CGFloat = 55
-        let spacing: CGFloat = 8
+        let buttonWidth: CGFloat = Constants.buttonWidth
+        let spacing: CGFloat = Constants.spacing
         let totalItemWidth = buttonWidth + spacing
         
         var newIndex = Int(location.x / totalItemWidth)
