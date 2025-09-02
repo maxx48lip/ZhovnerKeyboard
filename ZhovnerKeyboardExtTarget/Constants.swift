@@ -11,14 +11,37 @@ import UIKit
 enum Constants {
     static let key123Width: CGFloat = 45
     static let keyGlobeWidth: CGFloat = 40
-    static let keyShiftWidth: CGFloat = 45
-    static let keyBackspaceWidth: CGFloat = 45
-    static let keyReturnWidth: CGFloat = 55
-    static let keyLeftSpecialSymbolWidth: CGFloat = 28
-    static let keyRightSpecialSymbolWidth: CGFloat = 28
+    static var keyShiftWidth: CGFloat {
+        let countOfSpaces: CGFloat = 7
+        let spaceWidth: CGFloat = 8
+        return (UIScreen.main.bounds.width - (keyEnglishLetterWidth * countOfSpaces + countOfSpaces * spaceWidth)) / 2
+    }
+    static var keyBackspaceWidth: CGFloat {
+        let countOfSpaces: CGFloat = 7
+        let spaceWidth: CGFloat = 8
+        return (UIScreen.main.bounds.width - (keyEnglishLetterWidth * countOfSpaces + countOfSpaces * spaceWidth)) / 2
+    }
     
-    static let keyEnglishLetterWidth: CGFloat = 32
-    static let keyRussianLetterWidth: CGFloat = 28
+    static let keyReturnWidth: CGFloat = 55
+    static var keyLeftSpecialSymbolWidth: CGFloat {
+        return keyEnglishLetterWidth
+    }
+    static var keyRightSpecialSymbolWidth: CGFloat {
+        return keyEnglishLetterWidth
+    }
+    
+    static var keyEnglishLetterWidth: CGFloat {
+        let countOfKeys: CGFloat = 10
+        let spaceWidth: CGFloat = 8
+        return (UIScreen.main.bounds.width - 9 * spaceWidth) / countOfKeys
+    }
+
+    static var keyRussianLetterWidth: CGFloat {
+        let countOfKeys: CGFloat = 11
+        let spaceWidth: CGFloat = 8
+        return (UIScreen.main.bounds.width - 9 * spaceWidth) / countOfKeys
+    }
+    
     
     static let russianKeyboardLayout: [[String]] = [
         ["й", "ц", "у", "к", "е", "н", "г", "ш", "щ", "з", "х"],
